@@ -1,29 +1,36 @@
-name: Update to latest version, and update flake inputs
+name: Update to latest version and flake inputs
 
 on:
   schedule:
-    - cron: "0 4 * * *"
+    - cron: "17 4 * * *"
   workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
 
 jobs:
   update:
     name: Update flake inputs and browser
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.PAT }}
+      - name: Check out repository
+        uses: actions/checkout@v7
 
       - name: Check flake inputs
-        uses: DeterminateSystems/flake-checker-action@v4
+        uses: DeterminateSystems/flake-checker-action@v14
 
       - name: Install Nix
-        uses: DeterminateSystems/nix-installer-action@main
+        uses: DeterminateSystems/nix-installer-action@v23
 
-      - name: Check for update and perform update
+      - name: Configure Git
         run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
 
+      - name: Check for and perform updates
+        run: |
           nix run .#update

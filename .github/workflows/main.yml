@@ -1,28 +1,46 @@
-name: "Check and build all packages"
+name: Check and build all packages
+
 on:
   pull_request:
   push:
     branches: [master]
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  build-x86_64:
-    name: Build for x86_64-linux
+  check:
+    name: Check flake
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Check out repository
+        uses: actions/checkout@v7
       - name: Check flake inputs
-        uses: DeterminateSystems/flake-checker-action@v4
+        uses: DeterminateSystems/flake-checker-action@v14
       - name: Install Nix
-        uses: DeterminateSystems/nix-installer-action@main
+        uses: DeterminateSystems/nix-installer-action@v23
       - run: nix flake check --all-systems
-      - run: nix build .
-  build-aarch64:
-    name: Build for aarch64-linux
-    runs-on: ubuntu-24.04-arm
+
+  build:
+    name: Build for ${{ matrix.system }}
+    needs: check
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - system: x86_64-linux
+            runner: ubuntu-24.04
+          - system: aarch64-linux
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
     steps:
-      - uses: actions/checkout@v4
-      - name: Check flake inputs
-        uses: DeterminateSystems/flake-checker-action@v4
+      - name: Check out repository
+        uses: actions/checkout@v7
       - name: Install Nix
-        uses: DeterminateSystems/nix-installer-action@main
-      - run: nix build .
+        uses: DeterminateSystems/nix-installer-action@v23
+      - name: Build package
+        run: nix build ".#packages.${{ matrix.system }}.default"
