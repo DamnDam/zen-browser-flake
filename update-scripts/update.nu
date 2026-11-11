@@ -4,7 +4,7 @@
 
 def get_latest_release [repo: string]: nothing -> record {
   try {
-	http get $"https://api.github.com/repos/($repo)/releases?per_page=100"
+	http get $"https://api.github.com/repos/($repo)/releases"
 	  | where prerelease == false
 	  | where tag_name != "twilight"
 	  | first
